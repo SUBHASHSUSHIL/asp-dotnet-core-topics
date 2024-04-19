@@ -1,0 +1,4 @@
+//but hame sare sare file jaise css+js+jquery+bootstrap+Images sab wwwroot folder ke andar rakhenge!
+
+<img src="~/Images/sushil.jpeg.jpg" height="200px" width="200px" />
+<img src="~/Images/study.jpg" asp-append-version=true height="400" width="450" />
