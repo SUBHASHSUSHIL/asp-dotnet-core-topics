@@ -1,0 +1,34 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>
+
+<a href="/Home/Contact">Contact Page 1</a>
+<br />
+@Html.ActionLink("Contact page 2", "Contact", "Home")
+<br />
+<a href="@Url.Action("Contact","Home")">Contact page 3</a>
+<br />
+<a asp-controller="Home" asp-action="Contact">Contact Page 4</a>
+
+@* <a href="/Home/Contact">Contact Page 1</a>   //Not use in AnchorTag of Html5 and mvc 
+<br />
+@Html.ActionLink("Contact page 2", "Contact", "Home")
+<br />
+<a href="@Url.Action("Contact","Home")">Contact page 3</a>
+<br />
+<a asp-controller="Home" asp-action="Contact">Contact Page 4</a> *@  @* // Used in asp .net core TagHelper *@
+
+@* ID through *@
+
+@* <a href="/Home/Contact/1">Contact Page 1</a>
+<br />
+@Html.ActionLink("Contact page 2", "Contact", "Home",new {id = 1})
+<br />
+<a href="@Url.Action("Contact","Home",new {id = 1})">Contact page 3</a>
+<br />
+<a asp-controller="Home" asp-action="Contact" asp-route-id="1">Contact Page 4</a> *@
