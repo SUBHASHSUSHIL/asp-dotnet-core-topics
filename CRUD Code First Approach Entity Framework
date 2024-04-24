@@ -1,0 +1,414 @@
+//Model Class  Step -- 1
+
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace First_Approach_ASP_DotnetCore.Models
+{
+    public class Student
+    {
+        [Key]
+        public int Id { get; set; }
+        [Column("StudentName", TypeName = "varchar(50)")]
+        public string Name { get; set; } = "";
+        [Column("StudentGender", TypeName = "varchar(10)")]
+        public string Gender { get; set; } = "";
+
+        public int Age { get; set; }
+        public int Standard { get; set; }
+        public string Description { get; set; } = "";
+    }
+}
+
+//Model Database class Ado Connection  Step -- 2
+
+using Microsoft.EntityFrameworkCore;
+
+namespace First_Approach_ASP_DotnetCore.Models
+{
+    public class StudentDbContacts : DbContext
+    {
+        public StudentDbContacts(DbContextOptions options) : base(options)
+        {
+            
+        }
+        public DbSet<Student> students { get; set; }
+    }
+}
+
+
+//Create migration folder then create application through Database and table create     Step -- 3
+-> Programentor youtube chanel 41 number video Create migration folder then database connection
+
+//Controller  Step -- 4
+using First_Approach_ASP_DotnetCore.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
+
+namespace First_Approach_ASP_DotnetCore.Controllers
+{
+    public class HomeController : Controller
+    {
+        private readonly StudentDbContacts studentDb;
+
+        public HomeController(StudentDbContacts studentDb)
+        {
+            this.studentDb = studentDb;
+        }
+        public async Task<IActionResult> Index()
+        {
+            var stdData = await studentDb.students.ToListAsync();
+            return View(stdData);
+        }
+
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(Student std)
+        {
+            if(ModelState.IsValid)
+            {
+                await studentDb.students.AddAsync(std);
+                await studentDb.SaveChangesAsync();
+                TempData["insert-success"] = "inserted has been successfully..";
+                return RedirectToAction("Index","Home");
+            }
+            return View(std);
+        }
+
+        public async Task<IActionResult> Details(int id)
+        {
+            if(id == null || studentDb.students ==  null)
+            {
+                return NotFound();
+            }
+            var stdData = await studentDb.students.FirstOrDefaultAsync(x => x.Id == id);
+            if(stdData == null)
+            {
+                return NotFound();
+            }
+            return View(stdData);
+        }
+
+        public async Task<IActionResult> Edit(int? id)
+        {
+            if (id == null || studentDb.students == null)
+            {
+                return NotFound();
+            }
+            var stdData = await studentDb.students.FindAsync(id);
+            if(stdData == null)
+            {
+                return NotFound();
+            }
+            return View(stdData);
+        }
+        [HttpPost,ActionName("Edit")]
+        public async Task<IActionResult> EditUpdate(int? id, Student std)
+        {
+            if(ModelState.IsValid)
+            {
+                studentDb.Update(std);
+                await studentDb.SaveChangesAsync();
+                TempData["update-success"] = "Updated has been successfully..";
+                return RedirectToAction("Index","Home");
+            }
+            return View(std);
+        }
+
+        public async Task<IActionResult> Delete(int? id)
+        {
+            var stdData = await studentDb.students.FindAsync(id);
+            if (stdData != null)
+            {
+                studentDb.students.Remove(stdData);
+            }
+            await studentDb.SaveChangesAsync();
+            TempData["delete-success"] = "Deleted has been successfully..";
+            return RedirectToAction("Index", "Home");
+        }
+    }
+}
+
+//View Generate in Controller through
+//Index:-
+
+@model IEnumerable<First_Approach_ASP_DotnetCore.Models.Student>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+@{
+    if (TempData["insert-success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>Success!</strong> @TempData["insert-success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    if (TempData["update-success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>Success!</strong> @TempData["update-success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    if (TempData["delete-success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>Success!</strong> @TempData["delete-success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+}
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table table-dark table-bordered table-hover table-striped">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Id)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Name)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Gender)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Age)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Standard)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Description)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Id)
+                </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Gender)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Age)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Standard)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Description)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+
+
+//Create View
+
+@model First_Approach_ASP_DotnetCore.Models.Student
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+
+
+<h4>Student</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" placeholder="Enter Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Gender" class="control-label"></label>
+                <input asp-for="Gender" placeholder="Enter Gender" class="form-control" />
+                <span asp-validation-for="Gender" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Age" class="control-label"></label>
+                <input asp-for="Age" placeholder="Enter Age" class="form-control" />
+                <span asp-validation-for="Age" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Standard" class="control-label"></label>
+                <input asp-for="Standard" placeholder="Enter Class" class="form-control" />
+                <span asp-validation-for="Standard" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Description" class="control-label"></label>
+                <input asp-for="Description" placeholder="Enter Any Message" class="form-control" />
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+
+
+//Details View
+
+@model First_Approach_ASP_DotnetCore.Models.Student
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>Student</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Id)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Id)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Gender)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Gender)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Age)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Age)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Standard)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Standard)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Description)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Description)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
+
+
+//Edit View
+
+@model First_Approach_ASP_DotnetCore.Models.Student
+
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<h1>Edit</h1>
+
+<h4>Student</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Gender" class="control-label"></label>
+                <input asp-for="Gender" class="form-control" />
+                <span asp-validation-for="Gender" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Age" class="control-label"></label>
+                <input asp-for="Age" class="form-control" />
+                <span asp-validation-for="Age" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Standard" class="control-label"></label>
+                <input asp-for="Standard" class="form-control" />
+                <span asp-validation-for="Standard" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Description" class="control-label"></label>
+                <input asp-for="Description" class="form-control" />
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+
+
+//Delete View
+-> Not View Generate
+-> Delete All Work in Controller then Action method
+
+
+
