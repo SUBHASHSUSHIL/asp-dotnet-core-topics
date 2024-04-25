@@ -1,0 +1,356 @@
+Creating login form with Database using Session & logout then Ragisteration form
+
+# Step -- 1(Middileware Program.cs+Routing Add)
+Add below line before build in program.cs
+-> builder.Services.AddSession();
+Add below line after build in program.cs
+->app.UseSession();
+
+(Implementing Db First)
+#Step -- 2(Dependency file installation package)
+->Install 3 Packages in your asp.net core mvc application.
+1.->Microsoft.EntityFrameworkCore.SqlServer
+2.->Microsoft.EntityFrameworkCore.Tools
+3.->Microsoft.EntityFrameworkCore.Design
+
+#Step -- 3(model Add) -> then pahle database database table create kar tab connection karenge
+->Tools->Nuget package->Console down ->Enter Details
+=>Scaffold-DbContext "server=DESKTOP-F1LI6MI; database=DatabaseName; trusted_Connection=true" Microsoft.EntityFrameworkCore.SqlServer -OutputDir Models
+
+->Above command will generate model class add DbContext class automatically.
+
+#Step -- 4(Connection Data Remove from DbContext then Add Connection Data from appSettings.json file)
+->Move ConnectionStrings from DbContext class to appSetting.json file.
+=> "ConnectionStrings" : {
+"dbcs" : "server=DESKTOP-F1LI6MI; database=DatabaseName; trusted_Connection=true"
+},
+
+#Step -- 5(Routing+Midleware+Program.cs File)
+->Registering ConnectionString In Program.cs.
+->Create a Service for Registering Connection String 
+=>var provider = builder.Services.BuildServiceProvider();
+=>var config = provider.GetRequiredService<IConfiguration>();
+=>builder.Services.AddDbContext<StudentContext>(item => item.UseSqlServer(config.GetConnectionString("dbcs")));
+
+
+//appSetting.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "dbcs": "server=DESKTOP-F1LI6MI; database=LockIn; integrated security=true;"
+  },
+  "AllowedHosts": "*"
+}
+
+//Program.cs
+using Login_LogoutAspCore.Models;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+builder.Services.AddSession();
+var provider = builder.Services.BuildServiceProvider();
+var config = provider.GetRequiredService<IConfiguration>();
+builder.Services.AddDbContext<LockInContext>(item => item.UseSqlServer(config.GetConnectionString("dbcs")));
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
+
+app.UseSession();
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.Run();
+
+//Controller
+using Login_LogoutAspCore.Models;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
+
+namespace Login_LogoutAspCore.Controllers
+{
+    public class HomeController : Controller
+    {
+        private readonly LockInContext context;
+
+        public HomeController(LockInContext context)
+        {
+            this.context = context;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Login()
+        {
+            return View();
+        }
+        [HttpPost]
+        public IActionResult Login(LoginLogout lolo)
+        {
+            var myUser = context.LoginLogouts.Where(x => x.Email == lolo.Email && x.Password == lolo.Password).FirstOrDefault();
+            if (myUser != null)
+            {
+                HttpContext.Session.SetString("UserSession", myUser.Email);
+                return RedirectToAction("Dashboard");
+            }
+            else
+            {
+                ViewBag.Message = "Login Failed...";
+            }
+            return View();
+        }
+
+        public IActionResult Logout()
+        {
+            if (HttpContext.Session.GetString("UserSession") != null)
+            {
+                HttpContext.Session.Remove("UserSession");
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+
+        public IActionResult Ragister()
+        { 
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Ragister(LoginLogout lolo)
+        {
+            if(ModelState.IsValid)
+            {
+                await context.LoginLogouts.AddAsync(lolo);
+                await context.SaveChangesAsync();
+                TempData["success"] = "Ragistered Successfully...";
+                return RedirectToAction("Login");
+            }
+            return View();
+        }
+        public IActionResult Dashboard()
+        {
+            if (HttpContext.Session.GetString("UserSession") != null)
+            {
+                ViewBag.MySession = HttpContext.Session.GetString("UserSession");
+            }
+            else
+            {
+                return RedirectToAction("Login");
+            }
+            return View();
+        }
+        public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+    }
+}
+
+
+//Model class
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace Login_LogoutAspCore.Models
+{
+    public partial class LoginLogout
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = null!;
+    }
+}
+
+//Model Database
+using System;
+using System.Collections.Generic;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
+
+namespace Login_LogoutAspCore.Models
+{
+    public partial class LockInContext : DbContext
+    {
+        public LockInContext()
+        {
+        }
+
+        public LockInContext(DbContextOptions<LockInContext> options)
+            : base(options)
+        {
+        }
+
+        public virtual DbSet<LoginLogout> LoginLogouts { get; set; } = null!;
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+            }
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<LoginLogout>(entity =>
+            {
+                entity.ToTable("LoginLogout");
+
+                entity.Property(e => e.Email).HasMaxLength(60);
+
+                entity.Property(e => e.Name)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+
+                entity.Property(e => e.Password).HasMaxLength(10);
+            });
+
+            OnModelCreatingPartial(modelBuilder);
+        }
+
+=Login view
+@model Login_LogoutAspCore.Models.LoginLogout
+
+@{
+    ViewData["Title"] = "Login";
+}
+
+<h1>Login</h1>
+
+<h4>LoginLogout</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        @{
+            //login failed message
+            if(ViewBag.Message != null)
+            {
+                <p style="color:red">@ViewBag.Message</p>
+            }
+            if (TempData["success"] != null)
+            {
+                <p style="color:green">@TempData["success"]</p>
+            }
+        }
+        <form asp-action="Login">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            @* <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div> *@
+            <div class="form-group">
+                <label asp-for="Email" class="control-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Password" class="control-label"></label>
+                <input asp-for="Password" class="form-control" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Login" class="btn btn-primary" />
+            </div>
+        </form>
+        <br />
+        <p>
+            <a asp-controller="Home" asp-action="Ragister">Not Rajister Yet ? Click here To SingUp</a>
+        </p>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+=Ragistration View
+@model Login_LogoutAspCore.Models.LoginLogout
+
+@{
+    ViewData["Title"] = "Ragister";
+}
+
+<h1>Ragister</h1>
+
+<h4>LoginLogout</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Ragister">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Email" class="control-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Password" class="control-label"></label>
+                <input asp-for="Password" class="form-control" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Ragister" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Login">Login form</a>
+</div>
+
+=Dashboard view
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1>Dashboard</h1>
+@* ek page se dusre page par nevigate *@
+<h2>@ViewBag.MySession</h2>
+<a asp-controller="Home" asp-action="Logout">Logout</a>
+
+
+        partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
+    }
+}
