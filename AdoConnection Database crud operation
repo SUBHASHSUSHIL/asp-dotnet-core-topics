@@ -1,0 +1,125 @@
+using CRUD1.Models;
+using System.Data;
+using System.Data.SqlClient;
+
+namespace CRUD1.Models
+{
+    public class AdoConnection
+    {
+        string ConnectionStrings = "server=DESKTOP-F1LI6MI; initial catalog=Employers; integrated security=true;";
+
+        public IEnumerable<EmployeeModel> GetAll()
+        {
+            List<EmployeeModel> list = new List<EmployeeModel>();
+            SqlConnection con = new SqlConnection(ConnectionStrings);
+            SqlCommand cmd = new SqlCommand("Emp_GetAll", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            if(con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            SqlDataReader dr = cmd.ExecuteReader();
+            while (dr.Read())
+            {
+                EmployeeModel employee = new EmployeeModel();
+                employee.Id = Convert.ToInt32(dr["Id"]);
+                employee.Name = dr["Name"].ToString();
+                employee.Designation = dr["Designation"].ToString();
+                employee.Salary = Convert.ToInt32(dr["Salary"]);
+                employee.City = dr["City"].ToString();
+                employee.State = dr["State"].ToString();
+                list.Add(employee);
+            }
+            if(con.State == ConnectionState.Open)
+            {
+                con.Close();
+            }
+            return list;
+        }
+
+        public void AddEmployee(EmployeeModel employee)
+        {
+             SqlConnection con = new SqlConnection (ConnectionStrings);
+            SqlCommand cmd = new SqlCommand("Emp_Insert", con);
+            cmd.CommandType= CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Name",employee.Name);
+            cmd.Parameters.AddWithValue("@Designation",employee.Designation);
+            cmd.Parameters.AddWithValue("@Salary", employee.Salary);
+            cmd.Parameters.AddWithValue("@City",employee.City);
+            cmd.Parameters.AddWithValue("@State",employee.State);
+            if(con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            cmd.ExecuteNonQuery();
+            if(con.State == ConnectionState.Open)
+            {
+                con.Close();
+            }
+
+        }
+
+        public void DeleteEmployee(int ? id)
+        {
+            SqlConnection con = new SqlConnection(ConnectionStrings);
+            SqlCommand cmd = new SqlCommand("Emp_Delete", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Id", id);
+            if(con.State == ConnectionState.Closed)
+            {
+                con.Open() ;
+            }
+            cmd.ExecuteNonQuery();
+            if(con.State == ConnectionState.Open)
+            {
+                con.Close() ;
+            }
+        }
+
+        public void UpdateEmployee(EmployeeModel employee)
+        {
+            SqlConnection con = new SqlConnection(ConnectionStrings) ;
+            SqlCommand cmd = new SqlCommand("Emp_Update",con);
+            cmd.CommandType=CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Id",employee.Id);
+            cmd.Parameters.AddWithValue("@Name",employee.Name);
+            cmd.Parameters.AddWithValue("@Designation", employee.Designation);
+            cmd.Parameters.AddWithValue("@Salary",employee.Salary);
+            cmd.Parameters.AddWithValue("@City",employee.City);
+            cmd.Parameters.AddWithValue("@State",employee.State);
+            if(con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            cmd.ExecuteNonQuery();
+            if(con.State == ConnectionState.Open)
+            {
+                con.Close();
+            }
+
+        }
+        
+        public void EmployeeSelect(int ? id)
+        {
+            SqlConnection con = new SqlConnection(ConnectionStrings);
+            SqlCommand cmd = new SqlCommand("Emp_Select",con) ;
+            cmd.CommandType=CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Id",id);
+            if(con.State == ConnectionState.Closed)
+            {
+                con.Open() ;
+            }
+            SqlDataReader dr = cmd.ExecuteReader();
+            if(dr.Read())
+            {
+                EmployeeModel emp = new EmployeeModel();
+                emp.Id = Convert.ToInt32(dr["Id"]);
+                emp.Name = dr["Name"].ToString();
+                emp.Designation = dr["Designation"].ToString();
+                emp.Salary = Convert.ToInt32(dr["Salary"]);
+                emp.City = dr["City"].ToString();
+                emp.State = dr["State"].ToString();
+            }
+        }
+    }
+}
