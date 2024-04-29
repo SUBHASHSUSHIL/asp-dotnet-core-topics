@@ -1,0 +1,290 @@
+//SQL(Structure Query Language)
+create database Employers
+use Employers
+
+create table Employee(Id int identity(1,1) primary key,Name varchar(60) not null,Designation varchar(60) not null,Salary bigint not null,City varchar(50) not null,State varchar(50) not null);
+
+insert into Employee(Name,Designation,Salary,City,State) values ('Sushil','Study',85693,'Gopalganj','Bihar'),('Sandeep','Owner',85693,'Gopalganj','Bihar'),('Pardip','Manager',85693,'Gopalganj','Bihar'),('Subhash','Ownner',85693,'Gopalganj','Bihar');
+
+create procedure Emp_Insert
+@Name varchar(60),
+@Designation varchar(60),
+@Salary bigint,
+@City varchar(50),
+@State varchar(50)
+as
+begin
+insert into Employee(Name,Designation,Salary,City,State) values (@Name,@Designation,@Salary,@City,@State);
+end
+
+create procedure Emp_Update
+@Id int,
+@Name varchar(60),
+@Designation varchar(60),
+@Salary bigint,
+@City varchar(50),
+@State varchar(50)
+as
+begin
+Update Employee set Name=@Name,Designation = @Designation,Salary = @Salary,City = @City,State = @State where Id = @Id;
+end
+
+create procedure Emp_Select
+@Id int 
+as
+begin
+select * from Employee where Id = @Id;
+end
+
+create procedure Emp_GetAll
+as
+begin
+select * from Employee;
+end
+
+create procedure Emp_Delete
+@Id int
+as
+begin
+delete from Employee where Id = @Id;
+end
+
+//ModelClass Create
+using System.ComponentModel.DataAnnotations;
+
+namespace CRUD1.Models
+{
+    public class EmployeeModel
+    {
+        public int Id { get; set; }
+        [Required]
+        public string Name { get; set; } = "";
+        [Required]
+        public string Designation { get; set; } = "";
+        [Required]
+        public int Salary { get; set; }
+        [Required]
+        public string City { get; set; } = "";
+        [Required]
+        public string State { get; set; } = "";
+    }
+}
+
+//ModelClass ADOConnection
+using CRUD1.Models;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Data;
+using System.Data.SqlClient;
+
+namespace CRUD1.Models
+{
+    public class AdoConnection
+    {
+        string ConnectionStrings = "server=DESKTOP-F1LI6MI; initial catalog=Employers; integrated security=true;";
+
+        public IEnumerable<EmployeeModel> GetAll()
+        {
+            List<EmployeeModel> list = new List<EmployeeModel>();
+            SqlConnection con = new SqlConnection(ConnectionStrings);
+            SqlCommand cmd = new SqlCommand("Emp_GetAll", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            if (con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            SqlDataReader dr = cmd.ExecuteReader();
+            while (dr.Read())
+            {
+                EmployeeModel employee = new EmployeeModel();
+                employee.Id = Convert.ToInt32(dr["Id"]);
+                employee.Name = dr["Name"].ToString() ?? "";
+                employee.Designation = dr["Designation"].ToString() ?? "";
+                employee.Salary = Convert.ToInt32(dr["Salary"]);
+                employee.City = dr["City"].ToString() ?? "";
+                employee.State = dr["State"].ToString() ?? "";
+                list.Add(employee);
+            }
+            if (con.State == ConnectionState.Open)
+            {
+                con.Close();
+            }
+            return list;
+        }
+
+        public void AddEmployee(EmployeeModel employee)
+        {
+            SqlConnection con = new SqlConnection(ConnectionStrings);
+            SqlCommand cmd = new SqlCommand("Emp_Insert", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Name", employee.Name);
+            cmd.Parameters.AddWithValue("@Designation", employee.Designation);
+            cmd.Parameters.AddWithValue("@Salary", employee.Salary);
+            cmd.Parameters.AddWithValue("@City", employee.City);
+            cmd.Parameters.AddWithValue("@State", employee.State);
+            if (con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            cmd.ExecuteNonQuery();
+            if (con.State == ConnectionState.Open)
+            {
+                con.Close();
+            }
+
+        }
+
+        public void DeleteEmployee(int? id)
+        {
+            SqlConnection con = new SqlConnection(ConnectionStrings);
+            SqlCommand cmd = new SqlCommand("Emp_Delete", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@Id", id);
+            if (con.State == ConnectionState.Closed)
+            {
+                con.Open();
+            }
+            cmd.ExecuteNonQuery();
+            if (con.State == ConnectionState.Open)
+            {
+                con.Close();
+            }
+        }
+
+        public void UpdateEmployee(EmployeeModel emp)
+        {
+            using (SqlConnection con = new SqlConnection(ConnectionStrings))
+            {
+                SqlCommand cmd = new SqlCommand("Emp_Update", con);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Id", emp.Id);
+                cmd.Parameters.AddWithValue("@Name", emp.Name);
+                cmd.Parameters.AddWithValue("@Designation", emp.Designation);
+                cmd.Parameters.AddWithValue("@Salary", emp.Salary);
+                cmd.Parameters.AddWithValue("@City", emp.City);
+                cmd.Parameters.AddWithValue("@State", emp.State);
+                if (con.State == ConnectionState.Closed)
+                {
+                    con.Open();
+                }
+                cmd.ExecuteNonQuery();
+                if (con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                }
+            }
+
+        }
+
+        public EmployeeModel EmployeeSelect(int? id)
+        {
+            EmployeeModel emp = new EmployeeModel();
+            using (SqlConnection con = new SqlConnection(ConnectionStrings))
+            {
+                SqlCommand cmd = new SqlCommand("Emp_Select", con);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Id", id);
+                if (con.State == ConnectionState.Closed)
+                {
+                    con.Open();
+                }
+                SqlDataReader dr = cmd.ExecuteReader();
+                if (dr.Read())
+                {
+                    emp.Id = Convert.ToInt32(dr["Id"]);
+                    emp.Name = dr["Name"].ToString() ?? "";
+                    emp.Designation = dr["Designation"].ToString() ?? "";
+                    emp.Salary = Convert.ToInt32(dr["Salary"]);
+                    emp.City = dr["City"].ToString() ?? "";
+                    emp.State = dr["State"].ToString() ?? "";
+                }
+                if (con.State == ConnectionState.Open)
+                {
+                    con.Close();
+                }
+            }
+            return emp;
+        }
+
+    }
+}
+
+
+//Controller Create
+using Microsoft.AspNetCore.Mvc;
+using CRUD1.Models;
+
+namespace CRUD1.Controllers
+{
+    public class EmployeeController : Controller
+    {
+        private readonly AdoConnection adoc;
+        public EmployeeController()    //constructor create
+        {
+            adoc = new AdoConnection();
+        }
+
+        //AdoConnection database = new AdoConnection();
+        public IActionResult Index()
+        {
+            List<EmployeeModel> employees = new List<EmployeeModel>();
+            employees = adoc.GetAll().ToList();
+            return View(employees);
+        }
+
+        public IActionResult Create()
+        {
+            return View();
+        }
+        [HttpPost]
+        public IActionResult Create(EmployeeModel employee)
+        {
+            try
+            {
+                adoc.AddEmployee(employee);
+                return RedirectToAction("Index");
+            }
+            catch
+            {
+                return View();
+            }
+        }
+        public IActionResult Edit(int? id)
+        {
+            EmployeeModel emp = adoc.EmployeeSelect(id);
+            return View(emp);
+        }
+        [HttpPost]
+        public IActionResult Edit(EmployeeModel employee)
+        {
+            if (ModelState.IsValid)
+            {
+                adoc.UpdateEmployee(employee);
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+        public IActionResult Details(int? id)
+        {
+            EmployeeModel emp = adoc.EmployeeSelect(id);
+            return View(emp);
+        }
+        public IActionResult Delete(int id)
+        {
+            EmployeeModel emp = adoc.EmployeeSelect(id);
+            return View(emp);
+        }
+        [HttpPost]
+        public IActionResult Delete(EmployeeModel emp)
+        {
+            try
+            {
+                adoc.DeleteEmployee(emp.Id);
+                return RedirectToAction("Index");
+            }
+            catch
+            {
+                return View();
+            }
+        }
+    }
+}
