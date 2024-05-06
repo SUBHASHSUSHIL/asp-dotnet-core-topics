@@ -1,0 +1,138 @@
+1.Step
+=>copy one row in json table 
+=>Create new Visual Studio Application in 
+    1. Create model Class -> Go to Edit panel -> Paste Special -> Paste json as classes
+    2.Create Controller
+
+using Microsoft.AspNetCore.Mvc;
+using Consume.Models;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Consume.Controllers
+{
+    public class StudentApiConsumingController : Controller               //Constructor  (Short Create -> ctor+Enter)
+    {
+        private string url = "https://localhost:7146/api/StudentApi/";    //Api Url Code
+        private HttpClient client = new HttpClient();
+
+        [HttpGet]
+        public IActionResult Index()                                      //All Data Display
+        {
+            List<Student> list = new List<Student>();
+            HttpResponseMessage response = client.GetAsync(url).Result;
+            if (response.IsSuccessStatusCode)
+            {
+                string result = response.Content.ReadAsStringAsync().Result;
+                var data = JsonConvert.DeserializeObject<List<Student>>(result);
+                if (data != null)
+                {
+                    list = data;
+                }
+            }
+            return View(list);
+        }
+
+        [HttpGet]
+        public IActionResult Create()                                      //Insert
+        {
+            return View();
+        }
+
+
+        [HttpPost]
+        public IActionResult Create(Student std)
+        {
+            string data = JsonConvert.SerializeObject(std);
+            StringContent content = new StringContent(data, Encoding.UTF8, "application/json");
+            HttpResponseMessage result = client.PostAsync(url, content).Result;
+            if(result.IsSuccessStatusCode)
+            {
+                TempData["insert_Data"] = "Student Added..";
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+
+        [HttpGet]                                                            //Update
+        public IActionResult Edit(int id)
+        {
+            Student std = new Student();
+            HttpResponseMessage response = client.GetAsync(url + id).Result;
+            if(response.IsSuccessStatusCode)
+            {
+                string result = response.Content.ReadAsStringAsync().Result;
+                var data = JsonConvert.DeserializeObject<Student>(result);
+                if (data != null)
+                {
+                    std = data;
+                }
+            }
+            return View(std);
+
+        }
+
+        [HttpPost]
+        public IActionResult Edit(Student std)                                
+        {
+            string data = JsonConvert.SerializeObject(std);
+            StringContent content = new StringContent(data, Encoding.UTF8, "application/json");
+            HttpResponseMessage result = client.PutAsync(url + std.id, content).Result;
+            if (result.IsSuccessStatusCode)
+            {
+                TempData["update_Data"] = "Student updated..";
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+
+        [HttpGet]
+        public IActionResult Details(int id)                                          //Single Row Data Display
+        {
+            Student std = new Student();
+            HttpResponseMessage response = client.GetAsync(url + id).Result;
+            if (response.IsSuccessStatusCode)
+            {
+                string result = response.Content.ReadAsStringAsync().Result;
+                var data = JsonConvert.DeserializeObject<Student>(result);
+                if (data != null)
+                {
+                    std = data;
+                }
+            }
+            return View(std);
+
+        }
+
+        [HttpGet]
+        public IActionResult Delete(int id)                                        //Deleting in Single Data
+        {
+            Student std = new Student();
+            HttpResponseMessage response = client.GetAsync(url + id).Result;
+            if (response.IsSuccessStatusCode)
+            {
+                string result = response.Content.ReadAsStringAsync().Result;
+                var data = JsonConvert.DeserializeObject<Student>(result);
+                if (data != null)
+                {
+                    std = data;
+                }
+            }
+            return View(std);
+
+        }
+
+        [HttpPost,ActionName("Delete")]
+        public IActionResult DeleteConfirm(int id)
+        {
+            HttpResponseMessage response = client.DeleteAsync(url + id).Result;
+            if (response.IsSuccessStatusCode)
+            {
+                TempData["delete_Data"] = "Student deleted..";
+                return RedirectToAction("Index");
+            }
+            return View();
+        }
+    }
+}
