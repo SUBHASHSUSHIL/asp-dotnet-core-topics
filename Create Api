@@ -1,0 +1,103 @@
+1. Create Application
+2.Create Controller
+3.Create database
+4.package install in Dependencies file
+  1.microsoft.entityframeworkcore.design
+  2.microsoft.entityframeworkcore.sqlserver
+  3.microsoft.entityframeworkcore.tools
+5.Connection in Database
+  => Go to Tools -> choose nugget pack -> Then Code in package manager code
+  1.=>  PM> Scaffold-DbContext "server=DESKTOP-F1LI6MI;initial catalog=AspWebForm;trusted_connection=true;" Microsoft.EntityFrameworkCore.SqlServer -OutputDir Model
+
+  2.=>  Include in AppSetting file Connection Code.
+      "ConnectionStrings": {
+          "dbcs": "server=DESKTOP-F1LI6MI;initial catalog=AspWebForm;trusted_connection=true;"
+        },
+6.Program.cs Fle include Service Connection Code(MiddleWare Fle/Routing Set File).
+  =>  var provider = builder.Services.BuildServiceProvider();
+      var config = provider.GetRequiredService<IConfiguration>();
+      builder.Services.AddDbContext<AspWebFormContext>(item => item.UseSqlServer(config.GetConnectionString("dbcs")));
+
+  -> ye dono code ke bech me code likhana hai
+
+-->builder.Services.AddSwaggerGen();
+
+var provider = builder.Services.BuildServiceProvider();
+var config = provider.GetRequiredService<IConfiguration>();
+builder.Services.AddDbContext<AspWebFormContext>(item => item.UseSqlServer(config.GetConnectionString("dbcs")));
+
+-->var app = builder.Build();
+
+//Controller Code.
+
+using AspCoreWebApiCrud.Model;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace AspCoreWebApiCrud.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class StudentApiController : ControllerBase
+    {
+        private readonly AspWebFormContext context;
+
+        public StudentApiController(AspWebFormContext context)
+        {
+            this.context = context;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<List<Student>>> GetStudents()
+        {
+            var data = await context.Students.ToListAsync();
+            return Ok(data);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Student>> GetStudentById(int id)
+        {
+            var student = await context.Students.FindAsync(id);
+            if(student == null)
+            {
+                NotFound();
+            }
+            return Ok(student);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Student>> CreateStudent(Student std)
+        {
+            await context.Students.AddAsync(std);
+            await context.SaveChangesAsync();
+            return Ok(std);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Student>> UpdateStudent(int id,Student std)
+        {
+            if(id != std.Id)
+            {
+                return BadRequest();
+            }
+            context.Entry(std).State = EntityState.Modified;
+            await context.SaveChangesAsync();
+            return Ok(std);
+        }
+
+        [HttpDelete]
+        public async Task<ActionResult<Student>> DeleteStudent(int id)
+        {
+            var std = await context.Students.FindAsync(id);
+            if(std == null)
+            {
+                NotFound();
+            }
+            context.Students.Remove(std);
+            await context.SaveChangesAsync();
+            return Ok();
+        }
+    }
+
+}
