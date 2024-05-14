@@ -1,0 +1,223 @@
+//Using First Aaproach Database Connection
+1.Step  -> Database and Table Create
+2.Step  -> Visual Studio 2022 new Project Create (Asp .Net Core Web App(Model-View-Controller)
+3.Step  -> Install in 3 Package in Dependency
+  1.Microsoft.EntityFrameworkCore.Design
+  2.Microsoft.EntityFrameworkCore.Tools
+  3.Microsoft.EntityFrameworkCore.SqlServer
+4.Step  -> Tools -> Package Manager Console -> PM -> Scaffold-DbContext "server=ServerName;Database=DatabaseName;trusted_connection=true" Microsoft.EntityFrameworkCore.SqlServer -OutputDir Models
+//Update our Database
+5.Step  -> Tools -> Package Manager Console -> PM -> Scaffold-DbContext "server=ServerName;Database=DatabaseName;trusted_connection=true" Microsoft.EntityFrameworkCore.SqlServer -OutputDir Models -force
+6.Step  -> AppSetting.json  ->
+"ConnectionStrings": {
+  "dbcs": "server=DESKTOP-F1LI6MI;database=ImageDbAspCore;trusted_connection=true"
+},
+
+7.Step  -> builder.Services.AddDbContext<ImageDbAspCoreContext>(item => item.UseSqlServer(builder.Configuration.GetConnectionString("dbcs")));
+
+8.Step  -> System Generate Datbase table
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace ImageUploadingAspCore.Models
+{
+    public partial class Product
+    {
+        public int Id { get; set; }
+        [Required]
+        public string Name { get; set; } = null!;
+        [Required]
+        public int Price { get; set; }
+        [Required]
+        public string ImagePath { get; set; } = null!;
+    }
+}
+
+
+//Aapun ne Generate kiya Model then System IFormFile database generate nhi karta
+using System.ComponentModel.DataAnnotations;
+
+namespace ImageUploadingAspCore.Models
+{
+    public class ProductViewModel
+    {
+        public int Id { get; set; }
+        [Required]
+        public string Name { get; set; } = null!;
+        [Required]
+        public int Price { get; set; }
+        [Required]
+        public IFormFile Image { get; set; } = null!;
+    }
+}
+
+//Then Create new Controller
+using ImageUploadingAspCore.Models;
+using Microsoft.AspNetCore.Mvc;
+
+namespace ImageUploadingAspCore.Controllers
+{
+    public class ProductController : Controller
+    {
+        ImageDbAspCoreContext _context;
+        IWebHostEnvironment _environment;
+        public ProductController(ImageDbAspCoreContext _context, IWebHostEnvironment environment)
+        {
+            this._context = _context;
+            _environment = environment;
+
+        }
+        public IActionResult Index()
+        {
+            return View(_context.Products.ToList());
+        }
+        public IActionResult AddProduct()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public IActionResult AddProduct(ProductViewModel procd)
+        {
+            string fileName = "";
+            if(procd.Image != null)
+            {
+                var ext = Path.GetExtension(procd.Image.FileName);
+                var size = procd.Image.Length;
+                if (ext.Equals(".png") || ext.Equals(".jpg") || ext.Equals(".jpeg"))
+                {
+                    if (size <= 1000000)
+                    {
+                        string folder = Path.Combine(_environment.WebRootPath, "Images");
+                        fileName = Guid.NewGuid().ToString() + "_" + procd.Image.FileName;
+                        string filePath = Path.Combine(folder, fileName);
+                        procd.Image.CopyTo(new FileStream(filePath, FileMode.Create));
+
+                        Product p = new Product()
+                        {
+                            Name = procd.Name,
+                            Price = procd.Price,
+                            ImagePath = fileName
+                        };
+                        _context.Products.Add(p);
+                        _context.SaveChanges();
+                        TempData["Success"] = "Product Added..";
+                        return RedirectToAction("Index");
+                    }
+                    else
+                    {
+                        TempData["Size_Error"] = "Images must be less than 1 MB..";
+                    }
+                }
+                else
+                {
+                    TempData["ext_error"] = "Only PNG, JPG, JPEG images allows..";
+                }
+            }
+            return View();
+        }
+    }
+}
+
+//Index View :->
+
+@model IEnumerable<ImageUploadingAspCore.Models.Product>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="AddProduct">Add Product</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Name)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Price)
+            </th>
+            <th>
+                Image
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Price)
+            </td>
+            <td>
+                    <img src="~/Images/@Html.DisplayFor(modelItem => item.ImagePath)" style="width:150px; height:100px;" />
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+
+
+
+//Product View :->
+
+@model ImageUploadingAspCore.Models.ProductViewModel;
+
+@{
+    ViewData["Title"] = "AddProduct";
+}
+
+<h1>AddProduct</h1>
+
+<h4>Product</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+
+        <p style="color:red;">@TempData["Size_Error"]</p>
+        <p style="color:red;">@TempData["ext_error"]</p>
+        <form asp-action="AddProduct" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Price" class="control-label"></label>
+                <input asp-for="Price" class="form-control" />
+                <span asp-validation-for="Price" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Image" class="control-label"></label>
+                <input asp-for="Image" class="form-control" />
+                <span asp-validation-for="Image" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+
